@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <Group
+      location = "group:Projects"
+      name = "Projects">
+      <FileRef
+         location = "group:WhatsUp/WhatsUp.xcodeproj">
+      </FileRef>
+      <Group
+         location = "group:Feature"
+         name = "Feature">
+         <FileRef
+            location = "group:LinkSavingFeature/LinkSavingFeature.xcodeproj">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:Interface"
+         name = "Interface">
+         <FileRef
+            location = "group:LinkSavingInterface/LinkSavingInterface.xcodeproj">
+         </FileRef>
+      </Group>
+   </Group>
+   <Group
+      location = "container:"
+      name = "Dependencies">
+      <FileRef
+         location = "group:Tuist/.build/tuist-derived/SnapKit/SnapKit.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:Tuist/.build/tuist-derived/Then/Then.xcodeproj">
+      </FileRef>
+   </Group>
+</Workspace>
