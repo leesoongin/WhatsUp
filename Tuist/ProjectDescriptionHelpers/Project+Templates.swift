@@ -27,6 +27,21 @@ extension Project {
         )
     }
     
+    public static func makeCoreModule(
+        target: Module.Core,
+        dependencies: [TargetDependency] = []
+    ) -> Project {
+        return Project(
+            name: target.rawValue,
+            targets: [
+                .makeFeatureTarget(
+                    name: target.rawValue,
+                    dependencies: dependencies
+                )
+            ]
+        )
+    }
+    
     public static func makeFeatureModule(
         target: Module.Feature,
         dependencies: [TargetDependency] = []

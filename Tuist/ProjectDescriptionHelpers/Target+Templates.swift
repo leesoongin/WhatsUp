@@ -34,6 +34,22 @@ public extension Target {
         )
     }
     
+    static func makeCoreTarget(
+        name: String,
+        dependencies: [TargetDependency] = []
+    ) -> Target{
+        return .target(
+            name: name,
+            destinations: .iOS,
+            product: .staticFramework,
+            bundleId: "com.\(name).core",
+            deploymentTargets: .iOS(Project.depolymentTarget),
+            infoPlist: .default,
+            sources: ["Sources/**"],
+            dependencies: dependencies
+        )
+    }
+    
     static func makeFeatureTarget(
         name: String,
         dependencies: [TargetDependency] = []

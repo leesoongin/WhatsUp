@@ -11,8 +11,7 @@ import ProjectDescriptionHelpers
 let project = Project.makeFeatureModule(
     target: .linkSavingFeature,
     dependencies: [
-        .thirdParty(target: .snapKit),
-        .thirdParty(target: .then),
+        .core(target: .coreCommonKit)
     ]
 )
 

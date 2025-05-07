@@ -11,5 +11,8 @@ public extension Module {
     enum ThirdParty: String {
         case snapKit = "SnapKit"
         case then = "Then"
+        case combineCocoa = "CombineCocoa"
+        case rxSwift = "RxSwift"
+        case rxCocoa = "RxCocoa"
     }
 }

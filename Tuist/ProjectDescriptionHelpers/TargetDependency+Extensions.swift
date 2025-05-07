@@ -26,6 +26,15 @@ public extension TargetDependency {
         )
     }
     
+    static func core(
+        target: Module.Core
+    ) -> TargetDependency {
+        return .project(
+            target: target.rawValue,
+            path: .relativeToRoot("Projects/Core/\(target.rawValue)")
+        )
+    }
+    
     static func thirdParty(
         target: Module.ThirdParty,
         condition: PlatformCondition? = nil
