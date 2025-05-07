@@ -8,6 +8,13 @@
          location = "group:WhatsUp/WhatsUp.xcodeproj">
       </FileRef>
       <Group
+         location = "group:Core"
+         name = "Core">
+         <FileRef
+            location = "group:CoreCommonKit/CoreCommonKit.xcodeproj">
+         </FileRef>
+      </Group>
+      <Group
          location = "group:Feature"
          name = "Feature">
          <FileRef
@@ -25,6 +32,12 @@
    <Group
       location = "container:"
       name = "Dependencies">
+      <FileRef
+         location = "group:Tuist/.build/tuist-derived/CombineCocoa/CombineCocoa.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:Tuist/.build/tuist-derived/RxSwift/RxSwift.xcodeproj">
+      </FileRef>
       <FileRef
          location = "group:Tuist/.build/tuist-derived/SnapKit/SnapKit.xcodeproj">
       </FileRef>
