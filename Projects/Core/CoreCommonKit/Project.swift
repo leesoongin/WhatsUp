@@ -11,8 +11,6 @@ import ProjectDescriptionHelpers
 let project = Project.makeCoreModule(
     target: .coreCommonKit,
     dependencies: [
-        .thirdParty(target: .snapKit),
-        .thirdParty(target: .then),
         .thirdParty(target: .combineCocoa),
         .thirdParty(target: .rxSwift),
         .thirdParty(target: .rxCocoa)

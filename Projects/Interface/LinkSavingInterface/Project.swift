@@ -11,8 +11,7 @@ import ProjectDescriptionHelpers
 let project = Project.makeInterfaceModule(
     target: .linkSavingInterface,
     dependencies: [
-        .thirdParty(target: .snapKit),
-        .thirdParty(target: .then),
+        
     ]
 )
 
