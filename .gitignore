@@ -119,6 +119,7 @@ xcuserdata
 *.xcworkspacedata
 *.xccheckout
 *.xcscmblueprint
+*.plist
 
 # Ignore shared scheme settings
 xcshareddata/
