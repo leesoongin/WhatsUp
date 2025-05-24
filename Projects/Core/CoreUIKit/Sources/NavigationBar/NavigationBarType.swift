@@ -1,6 +1,6 @@
 //
 //  NavigationBarType.swift
-//  CoreCommonKit
+//  CoreFoundationKit
 //
 //  Created by 이숭인 on 5/7/25.
 //

@@ -11,8 +11,9 @@ import ProjectDescriptionHelpers
 let project = Project.makeFeatureModule(
     target: .linkSavingFeature,
     dependencies: [
-        .core(target: .coreCommonKit),
+        .core(target: .coreFoundationKit),
         .core(target: .coreUIKit),
+        .core(target: .coreDatabase),
         .interface(target: .linkSavingInterface)
     ]
 )

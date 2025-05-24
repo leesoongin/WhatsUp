@@ -11,7 +11,7 @@ import ProjectDescriptionHelpers
 let project = Project.makeInterfaceModule(
     target: .linkSavingInterface,
     dependencies: [
-        
+        .core(target: .coreDatabase)
     ]
 )
 

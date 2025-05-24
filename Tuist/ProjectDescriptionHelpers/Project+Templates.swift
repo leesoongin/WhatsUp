@@ -8,7 +8,7 @@
 import ProjectDescription
 
 extension Project {
-    public static let depolymentTarget: String = "15.0"
+    public static let depolymentTarget: String = "16.0"
     public static let appName: String = "WhatsUp"
     public static let bundleID: String = "WhatsUp"
     

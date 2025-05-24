@@ -9,7 +9,8 @@ import Foundation
 
 public extension Module {
     enum Core: String {
-        case coreCommonKit = "CoreCommonKit"
+        case coreFoundationKit = "CoreFoundationKit"
         case coreUIKit = "CoreUIKit"
+        case coreDatabase = "CoreDatabase"
     }
 }

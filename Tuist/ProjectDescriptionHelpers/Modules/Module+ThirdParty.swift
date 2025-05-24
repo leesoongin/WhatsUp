@@ -14,5 +14,6 @@ public extension Module {
         case combineCocoa = "CombineCocoa"
         case rxSwift = "RxSwift"
         case rxCocoa = "RxCocoa"
+        case realmSwift = "RealmSwift"
     }
 }

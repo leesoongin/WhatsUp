@@ -50,7 +50,7 @@ extension NavigationBarApplicable {
         let appearance = UINavigationBarAppearance()
         appearance.backgroundColor = navigationBarType.backgroundColor
         appearance.shadowColor = .clear
-        appearance.shadowImage = navigationBarType.hasShadow ? UIColor.clear.as1pxImage() : UIColor.gray.as1pxImage()
+        appearance.shadowImage = navigationBarType.hasShadow ? UIColor.gray.as1pxImage() : UIColor.clear.as1pxImage()
         appearance.titlePositionAdjustment = .zero
         appearance.titleTextAttributes = [
             .foregroundColor: navigationBarType.titleColor,
