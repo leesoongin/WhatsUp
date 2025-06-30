@@ -43,5 +43,14 @@ public extension TargetDependency {
             name: target.rawValue,
             condition: condition)
     }
+    
+    static func tests(
+        target: Module.Tests
+    ) -> TargetDependency {
+        return .project(
+            target: target.rawValue,
+            path: .relativeToRoot("Projects/Tests/\(target.rawValue)")
+        )
+    }
 }
 

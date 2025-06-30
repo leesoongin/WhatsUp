@@ -25,10 +25,12 @@ public final class TaskExecutor<EventType>: Then {
         self.taskGroups = content()
     }
 
-    public func executeTasks() {
+    public func executeTasks(continueToNext: Bool = true) {
         guard let taskGroup = taskGroups.first else {
 //            Log.info("[TaskExecutor] all task finished")
-            eventSubject.send(completion: .finished)
+            if !continueToNext {
+                eventSubject.send(completion: .finished)
+            }
             return
         }
 
@@ -42,5 +44,9 @@ public final class TaskExecutor<EventType>: Then {
             .store(in: &cancellables)
 
         taskGroup.execute()
+    }
+    
+    public func completeExecution() {
+        eventSubject.send(completion: .finished)
     }
 }

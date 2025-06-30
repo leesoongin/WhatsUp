@@ -14,6 +14,7 @@ let project = Project.makeCoreModule(
         .thirdParty(target: .combineCocoa),
         .thirdParty(target: .rxSwift),
         .thirdParty(target: .rxCocoa),
+        .thirdParty(target: .realm),
         .thirdParty(target: .realmSwift)
     ]
 )

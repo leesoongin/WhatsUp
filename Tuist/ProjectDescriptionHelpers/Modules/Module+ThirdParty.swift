@@ -12,8 +12,12 @@ public extension Module {
         case snapKit = "SnapKit"
         case then = "Then"
         case combineCocoa = "CombineCocoa"
+        case combineExt = "CombineExt"
         case rxSwift = "RxSwift"
         case rxCocoa = "RxCocoa"
+        case realm = "Realm"
         case realmSwift = "RealmSwift"
+        case quick = "Quick"
+        case nimble = "Nimble"
     }
 }

@@ -23,5 +23,8 @@ let package = Package(
         .package(url: "https://github.com/onevcat/Kingfisher.git", exact: "7.11.0"),
         .package(url: "https://github.com/Moya/Moya.git", from: "15.0.0"),
         .package(url: "https://github.com/realm/realm-swift.git", exact: "10.50.0"),
+        .package(url: "https://github.com/CombineCommunity/CombineExt.git", from: "1.0.0"),
+        .package(url: "https://github.com/Quick/Quick.git", from: "7.0.0"),
+        .package(url: "https://github.com/Quick/Nimble.git", from: "12.0.0"),
     ]
 )

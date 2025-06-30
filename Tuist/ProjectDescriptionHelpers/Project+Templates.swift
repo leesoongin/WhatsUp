@@ -71,5 +71,20 @@ extension Project {
             ]
         )
     }
+    
+    public static func makeTestsModule(
+        target: Module.Tests,
+        dependencies: [TargetDependency]
+    ) -> Project {
+        return Project(
+            name: target.rawValue,
+            targets: [
+                .makeFeatureTestsTarget(
+                    name: target.rawValue,
+                    dependencies: dependencies
+                )
+            ]
+        )
+    }
 }
 

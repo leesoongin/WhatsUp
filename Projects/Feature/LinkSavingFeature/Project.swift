@@ -14,7 +14,10 @@ let project = Project.makeFeatureModule(
         .core(target: .coreFoundationKit),
         .core(target: .coreUIKit),
         .core(target: .coreDatabase),
-        .interface(target: .linkSavingInterface)
+        .interface(target: .linkSavingInterface),
+        .thirdParty(target: .combineExt),
+        .thirdParty(target: .quick),
+        .thirdParty(target: .nimble)
     ]
 )
 
