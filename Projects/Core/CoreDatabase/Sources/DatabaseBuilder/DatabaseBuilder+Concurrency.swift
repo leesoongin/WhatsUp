@@ -12,70 +12,38 @@ import RealmSwift
 // MARK: - Async/Await CRUD Operations
 public extension DatabaseBuilder {
     func asyncCreate(_ entity: Entity) async throws -> Entity {
-        let entityToSave = entity.realm != nil ? createDetachedCopy(of: entity) : entity
-        
-        let savedEntity = try await asyncPerformWrite { realm in
-            realm.add(entityToSave, update: .modified)
-            return entityToSave
-        }
-        
-        return createDetachedCopy(of: savedEntity)
+        return try await asyncPerformWrite(entity)
     }
     
     func asyncRead(primaryKey: Entity.PrimaryKeyType) async throws -> Entity? {
-        let entity = try await asyncPerformRead { realm in
-            return realm.object(ofType: Entity.self, forPrimaryKey: primaryKey)
-        }
-        
-        return entity.map { createDetachedCopy(of: $0) }
+        return try await asyncPerformRead(primaryKey: primaryKey)
     }
     
     func asyncReadAll() async throws -> [Entity] {
-        let entities = try await asyncPerformRead { realm in
-            return Array(realm.objects(Entity.self))
-        }
-        
-        return createDetachedCopies(of: entities)
+        return try await asyncReadAll()
     }
     
     func asyncUpdate(_ entity: Entity) async throws -> Entity {
         return try await asyncCreate(entity) // Realm의 upsert 특성 활용
     }
     
-    func asyncDelete(primaryKey: Entity.PrimaryKeyType) async throws {
-        try await asyncPerformWrite { realm in
-            guard let entity = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) else {
-                throw DatabaseError.entityNotFound
-            }
-            realm.delete(entity)
-        }
+    func asyncDelete(primaryKey: Entity.PrimaryKeyType) async throws -> Void {
+        try await asyncPerformDelete(primaryKey: primaryKey)
     }
     
-    func asyncDeleteAll() async throws {
-        try await asyncPerformWrite { realm in
-            let entities = realm.objects(Entity.self)
-            realm.delete(entities)
-        }
+    func asyncDeleteAll() async throws -> Void {
+        try await asyncDeleteAll()
     }
     
     func asyncQuery(_ predicate: NSPredicate) async throws -> [Entity] {
-        let entities = try await asyncPerformRead { realm in
-            return Array(realm.objects(Entity.self).filter(predicate))
-        }
-        
-        return createDetachedCopies(of: entities)
+        try await asyncPerformRead(with: predicate)
     }
     
     func asyncCount() async throws -> Int {
-        return try await asyncPerformRead { realm in
-            return realm.objects(Entity.self).count
-        }
+        return try await asyncPerformReadAll().count
     }
     
     func asyncExists(primaryKey: Entity.PrimaryKeyType) async throws -> Bool {
-        return try await asyncPerformRead { realm in
-            return realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) != nil
-        }
+        return try await asyncPerformRead(primaryKey: primaryKey) != nil
     }
-
 }

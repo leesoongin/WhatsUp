@@ -11,6 +11,7 @@ import ProjectDescriptionHelpers
 let project = Project.makeCoreModule(
     target: .coreDatabase,
     dependencies: [
+        .thirdParty(target: .realm),
         .thirdParty(target: .realmSwift)
     ]
 )

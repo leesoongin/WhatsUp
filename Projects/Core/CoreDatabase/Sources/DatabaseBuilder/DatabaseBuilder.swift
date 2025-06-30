@@ -13,8 +13,10 @@ import Combine
 /// 데이터베이스 엔티티가 준수해야 하는 기본 프로토콜
 public protocol DatabaseEntity {
     associatedtype PrimaryKeyType: Hashable
+    associatedtype DetachType
     
-    var primaryKey: PrimaryKeyType { get }
+    var compositeKey: PrimaryKeyType { get }
+    func detached() -> DetachType
 }
 
 public protocol Persistable: DatabaseEntity {
@@ -58,8 +60,8 @@ public protocol DatabaseBuilder {
     func asyncRead(primaryKey: Entity.PrimaryKeyType) async throws -> Entity?
     func asyncReadAll() async throws -> [Entity]
     func asyncUpdate(_ entity: Entity) async throws -> Entity
-    func asyncDelete(primaryKey: Entity.PrimaryKeyType) async throws
-    func asyncDeleteAll() async throws
+    func asyncDelete(primaryKey: Entity.PrimaryKeyType) async throws -> Void
+    func asyncDeleteAll() async throws -> Void
     func asyncQuery(_ predicate: NSPredicate) async throws -> [Entity]
     func asyncCount() async throws -> Int
     func asyncExists(primaryKey: Entity.PrimaryKeyType) async throws -> Bool
@@ -68,14 +70,20 @@ public protocol DatabaseBuilder {
     func batchCreate(_ entities: [Entity]) -> AnyPublisher<[Entity], DatabaseError>
     func batchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) -> AnyPublisher<Void, DatabaseError>
     func asyncBatchCreate(_ entities: [Entity]) async throws -> [Entity]
-    func asyncBatchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) async throws
+    func asyncBatchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) async throws -> Void
     
     // MARK: - Internal Operations
     func createRealm() throws -> Realm
-    func createDetachedCopy(of entity: Entity) -> Entity
-    func createDetachedCopies(of entities: [Entity]) -> [Entity]
-    func performRead<T>(_ block: @escaping (Realm) throws -> T) -> AnyPublisher<T, DatabaseError>
-    func performWrite<T>(_ block: @escaping (Realm) throws -> T) -> AnyPublisher<T, DatabaseError>
-    func asyncPerformRead<T>(_ block: @escaping (Realm) throws -> T) async throws -> T
-    func asyncPerformWrite<T>(_ block: @escaping (Realm) throws -> T) async throws -> T
+    func performRead(with primaryKey: Entity.PrimaryKeyType) -> AnyPublisher<Entity?, DatabaseError>
+    func performQuery(with predicate: NSPredicate) -> AnyPublisher<[Entity], DatabaseError>
+    func performReadAll() -> AnyPublisher<[Entity], DatabaseError>
+    func performWrite(entity: Entity) -> AnyPublisher<Entity, DatabaseError>
+    func performDelete(_ primaryKey: Entity.PrimaryKeyType) -> AnyPublisher<Void, DatabaseError>
+    func performDeleteAll() -> AnyPublisher<Void, DatabaseError>
+    
+    func asyncPerformRead(primaryKey: Entity.PrimaryKeyType) async throws -> Entity?
+    func asyncPerformReadAll() async throws -> [Entity]
+    func asyncPerformWrite(_ entity: Entity) async throws -> Entity
+    func asyncPerformDelete(primaryKey: Entity.PrimaryKeyType) async throws -> Void
+    func asyncPerformDeleteAll() async throws -> Void
 }

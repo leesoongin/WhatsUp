@@ -12,6 +12,12 @@ import Combine
 // MARK: - Default Configuration
 public extension DatabaseBuilder {
     var realmConfiguration: Realm.Configuration {
+//        return Realm.Configuration.defaultConfiguration
+        let config = Realm.Configuration(
+            schemaVersion: 1, // 버전은 늘려도 되고 안 늘려도 됨 (어차피 삭제됨)
+            deleteRealmIfMigrationNeeded: true
+        )
+        Realm.Configuration.defaultConfiguration = config
         return Realm.Configuration.defaultConfiguration
     }
     
@@ -41,38 +47,18 @@ public extension DatabaseBuilder {
         return try Realm(configuration: realmConfiguration)
     }
     
-    func createDetachedCopy(of entity: Entity) -> Entity {
-        let detachedEntity = Entity()
-        
-        let mirror = Mirror(reflecting: entity)
-        for child in mirror.children {
-            guard let propertyName = child.label else { continue }
-            
-            // Realm의 managed 프로퍼티는 복사하지 않음
-            if propertyName.hasPrefix("realm") || propertyName.hasPrefix("invalidated") {
-                continue
-            }
-            
-            detachedEntity.setValue(child.value, forKey: propertyName)
-        }
-        
-        return detachedEntity
-    }
-    
-    func createDetachedCopies(of entities: [Entity]) -> [Entity] {
-        return entities.map { createDetachedCopy(of: $0) }
-    }
-    
-    func performRead<T>(_ block: @escaping (Realm) throws -> T) -> AnyPublisher<T, DatabaseError> {
-        return Future<T, DatabaseError> { promise in
+    func performRead(with primaryKey: Entity.PrimaryKeyType) -> AnyPublisher<Entity?, DatabaseError> {
+        return Future<Entity?, DatabaseError> { promise in
             self.concurrentQueue.async {
                 autoreleasepool {
                     do {
                         let realm = try self.createRealm()
-                        let result = try block(realm)
+                        realm.refresh()
+                        
+                        let result = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey)
                         promise(.success(result))
                     } catch {
-                        promise(.failure(.queryFailed(error)))
+                        promise(.failure(.realmCreationFailed(error)))
                     }
                 }
             }
@@ -80,18 +66,38 @@ public extension DatabaseBuilder {
         .eraseToAnyPublisher()
     }
     
-    func performWrite<T>(_ block: @escaping (Realm) throws -> T) -> AnyPublisher<T, DatabaseError> {
-        return Future<T, DatabaseError> { promise in
+    func performQuery(with predicate: NSPredicate) -> AnyPublisher<[Entity], DatabaseError> {
+        return Future<[Entity], DatabaseError> { promise in
+            self.concurrentQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        realm.refresh()
+                        
+                        let result = Array(realm.objects(Entity.self).filter(predicate))
+                        promise(.success(result))
+                    } catch {
+                        promise(.failure(.realmCreationFailed(error)))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func performReadAll() -> AnyPublisher<[Entity], DatabaseError> {
+        return Future<[Entity], DatabaseError> { promise in
             self.serialQueue.async {
                 autoreleasepool {
                     do {
                         let realm = try self.createRealm()
-                        let result = try realm.write {
-                            return try block(realm)
-                        }
-                        promise(.success(result))
+                        realm.refresh()
+                        
+                        let results = Array(realm.objects(Entity.self))
+                        print("::: read all count > \(results.count)")
+                        promise(.success(results))
                     } catch {
-                        promise(.failure(.saveFailed(error)))
+                        promise(.failure(.realmCreationFailed(error)))
                     }
                 }
             }
@@ -99,34 +105,203 @@ public extension DatabaseBuilder {
         .eraseToAnyPublisher()
     }
     
-    func asyncPerformRead<T>(_ block: @escaping (Realm) throws -> T) async throws -> T {
+    func performWrite(entity: Entity) -> AnyPublisher<Entity, DatabaseError> {
+        return Future<Entity, DatabaseError> { promise in
+            self.serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        
+                        do {
+                            try realm.write {
+                                realm.add(entity, update: .modified)
+                            }
+                            
+                            promise(.success(entity))
+                        } catch {
+                            promise(.failure(.insertFailed))
+                        }
+                    } catch {
+                        promise(.failure(.realmCreationFailed(error)))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func performDelete(_ primaryKey: Entity.PrimaryKeyType) -> AnyPublisher<Void, DatabaseError> {
+        return Future<Void, DatabaseError> { promise in
+            self.serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        
+                        do {
+                            try realm.write {
+                                guard let entity = realm.object(
+                                    ofType: Entity.self,
+                                    forPrimaryKey: primaryKey
+                                ) else {
+                                    throw DatabaseError.noRecordToDelete
+                                }
+                                realm.delete(entity)
+                            }
+                            promise(.success(Void()))
+                        } catch {
+                            promise(.failure(.deleteFailed))
+                        }
+                    } catch {
+                        promise(.failure(.realmCreationFailed(error)))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func performDeleteAll() -> AnyPublisher<Void, DatabaseError> {
+        return Future<Void, DatabaseError> { promise in
+            self.serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            try realm.write {
+                                let entities = realm.objects(Entity.self)
+                                realm.delete(entities)
+                            }
+                            
+                            promise(.success(Void()))
+                        } catch {
+                            promise(.failure(.deleteAllFailed))
+                        }
+                        
+                    } catch {
+                        promise(.failure(.realmCreationFailed(error)))
+                    }
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func asyncPerformRead(primaryKey: Entity.PrimaryKeyType) async throws -> Entity? {
         return try await withCheckedThrowingContinuation { continuation in
             concurrentQueue.async {
                 autoreleasepool {
                     do {
                         let realm = try self.createRealm()
-                        let result = try block(realm)
+                        let result = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey)
                         continuation.resume(returning: result)
                     } catch {
-                        continuation.resume(throwing: DatabaseError.queryFailed(error))
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
                     }
                 }
             }
         }
     }
     
-    func asyncPerformWrite<T>(_ block: @escaping (Realm) throws -> T) async throws -> T {
+    
+    func asyncPerformReadAll() async throws -> [Entity] {
+        return try await withCheckedThrowingContinuation { continuation in
+            concurrentQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        let result = Array(realm.objects(Entity.self))
+                        continuation.resume(returning: result)
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
+                }
+            }
+        }
+    }
+    
+    func asyncPerformRead(with predicate: NSPredicate) async throws -> [Entity] {
+        return try await withCheckedThrowingContinuation { continuation in
+            concurrentQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        
+                        let result = Array(realm.objects(Entity.self).filter(predicate))
+                        continuation.resume(returning: result)
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
+                }
+            }
+        }
+    }
+    
+    func asyncPerformWrite(_ entity: Entity) async throws -> Entity {
         return try await withCheckedThrowingContinuation { continuation in
             serialQueue.async {
                 autoreleasepool {
                     do {
                         let realm = try self.createRealm()
-                        let result = try realm.write {
-                            return try block(realm)
+                        do {
+                            try realm.write {
+                                realm.add(entity, update: .modified)
+                            }
+                            continuation.resume(returning: entity)
+                        } catch {
+                            continuation.resume(throwing: DatabaseError.insertFailed)
                         }
-                        continuation.resume(returning: result)
                     } catch {
-                        continuation.resume(throwing: DatabaseError.saveFailed(error))
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
+                }
+            }
+        }
+    }
+    
+    func asyncPerformDelete(primaryKey: Entity.PrimaryKeyType) async throws -> Void {
+        return try await withCheckedThrowingContinuation { continuation in
+            serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            try realm.write {
+                                guard let result = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) else {
+                                    continuation.resume(throwing: DatabaseError.noRecordToDelete)
+                                    throw DatabaseError.noRecordToDelete
+                                }
+                                realm.delete(result)
+                            }
+                            continuation.resume(returning: Void())
+                        } catch {
+                            continuation.resume(throwing: DatabaseError.deleteFailed)
+                        }
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
+                }
+            }
+        }
+    }
+    
+    func asyncPerformDeleteAll() async throws -> Void {
+        return try await withCheckedThrowingContinuation { continuation in
+            serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            try realm.write {
+                                let results = realm.objects(Entity.self)
+                                realm.delete(results)
+                            }
+                            
+                            continuation.resume(returning: Void())
+                        } catch {
+                            continuation.resume(throwing: DatabaseError.batchDeleteFailed)
+                        }
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
                     }
                 }
             }
@@ -135,51 +310,106 @@ public extension DatabaseBuilder {
     
     // MARK: Batch Operations
     func batchCreate(_ entities: [Entity]) -> AnyPublisher<[Entity], DatabaseError> {
-        let entitiesToSave = entities.map { entity in
-            entity.realm != nil ? createDetachedCopy(of: entity) : entity
+        return Future<[Entity], DatabaseError> { promise in
+            self.serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            try realm.write {
+                                realm.add(entities, update: .modified)
+                            }
+                            promise(.success(entities))
+                        } catch {
+                            promise(.failure(.insertFailed))
+                        }
+                    } catch {
+                        promise(.failure(.realmCreationFailed(error)))
+                    }
+                }
+            }
         }
-        
-        return performWrite { realm in
-            realm.add(entitiesToSave, update: .modified)
-            return entitiesToSave
-        }
-        .map { [self] savedEntities in
-            createDetachedCopies(of: savedEntities)
-        }
-        .receive(on: DispatchQueue.main)
         .eraseToAnyPublisher()
     }
     
     func batchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) -> AnyPublisher<Void, DatabaseError> {
-        return performWrite { realm in
-            for primaryKey in primaryKeys {
-                if let entity = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) {
-                    realm.delete(entity)
+        return Future<Void, DatabaseError> { promise in
+            self.serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        try realm.write {
+                            primaryKeys.forEach { primaryKey in
+                                if let entity = realm.object(
+                                    ofType: Entity.self,
+                                    forPrimaryKey: primaryKey
+                                ) {
+                                    realm.delete(entity)
+                                }
+                            }
+                        }
+                        promise(.success(Void()))
+                    } catch {
+                        promise(.failure(.batchDeleteFailed))
+                    }
                 }
             }
         }
-        .receive(on: DispatchQueue.main)
         .eraseToAnyPublisher()
     }
     
     func asyncBatchCreate(_ entities: [Entity]) async throws -> [Entity] {
-        let entitiesToSave = entities.map { entity in
-            entity.realm != nil ? createDetachedCopy(of: entity) : entity
+        return try await withCheckedThrowingContinuation { continuation in
+            serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            try realm.write {
+                                realm.add(entities, update: .modified)
+                            }
+                            continuation.resume(returning: entities)
+                        } catch {
+                            continuation.resume(throwing: DatabaseError.batchInsertFailed)
+                        }
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
+                }
+            }
         }
-        
-        let savedEntities = try await asyncPerformWrite { realm in
-            realm.add(entitiesToSave, update: .modified)
-            return entitiesToSave
-        }
-        
-        return createDetachedCopies(of: savedEntities)
     }
     
-    func asyncBatchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) async throws {
-        try await asyncPerformWrite { realm in
-            for primaryKey in primaryKeys {
-                if let entity = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) {
-                    realm.delete(entity)
+    func asyncBatchDelete(_ primaryKeys: [Entity.PrimaryKeyType]) async throws -> Void {
+        return try await withCheckedThrowingContinuation { continuation in
+            serialQueue.async {
+                autoreleasepool {
+                    do {
+                        let realm = try self.createRealm()
+                        do {
+                            var noRecordedPrimaryKeys: [Entity.PrimaryKeyType] = []
+                            
+                            try realm.write {
+                                primaryKeys.forEach { primaryKey in
+                                    if let result = realm.object(ofType: Entity.self, forPrimaryKey: primaryKey) {
+                                        realm.delete(result)
+                                    } else {
+                                        noRecordedPrimaryKeys.append(primaryKey)
+                                    }
+                                }
+                            }
+                            
+                            if noRecordedPrimaryKeys.isEmpty {
+                                continuation.resume(returning: Void())
+                            } else {
+                                continuation.resume(throwing: DatabaseError.batchDeleteFailed)
+                            }
+                        } catch {
+                            continuation.resume(throwing: DatabaseError.deleteFailed)
+                        }
+                    } catch {
+                        continuation.resume(throwing: DatabaseError.realmCreationFailed(error))
+                    }
                 }
             }
         }
